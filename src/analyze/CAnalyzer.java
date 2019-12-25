@@ -65,8 +65,8 @@ public class CAnalyzer {
 		ParseTreeWalker walker = new ParseTreeWalker();
 		listener = new CPP14BaseListener();
 		walker.walk(listener, parser.translationunit());
-
-		File outputDir = new File("output");
+		
+		File outputDir = new File(file.getParent());
 		outputDir.mkdirs();
 		PrintWriter output = new PrintWriter(
 				new BufferedWriter(new FileWriter(new File(outputDir.getPath(), file.getName() + "-ast.txt"))));
