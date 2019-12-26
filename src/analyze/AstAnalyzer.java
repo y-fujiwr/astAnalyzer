@@ -1,6 +1,8 @@
 package analyze;
 
+import java.io.BufferedReader;
 import java.io.BufferedWriter;
+import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.PrintWriter;
@@ -17,6 +19,7 @@ import org.eclipse.jdt.core.dom.ASTParser;
 import org.eclipse.jdt.core.dom.ASTVisitor;
 import org.eclipse.jdt.core.dom.CompilationUnit;
 
+import astStringGenerator.AstStringGenerator;
 import astStringGenerator.Config;
 
 public class AstAnalyzer {
@@ -24,7 +27,9 @@ public class AstAnalyzer {
 	private StringBuilder astString;
 	private StringBuilder parents;
 	private StringBuilder toks;
+	private static ArrayList<String> dictionary = new ArrayList<String>();;
 	private final boolean isGCN = true; //GCNの場合toksとparentsは不要
+	private final static int IDENTIFIER = 42;
 
 	public AstAnalyzer() {
 		astString = new StringBuilder();
@@ -33,6 +38,8 @@ public class AstAnalyzer {
 	}
 
 	public void analyze(String target) throws IOException {
+		if (!Config.mode.equals("train"))
+			loadDictionary();
 		ASTParser parser = ASTParser.newParser(AST.JLS4);
 		parser.setSource(readAll(target).toCharArray());
 		CompilationUnit unit = (CompilationUnit) parser.createAST(new NullProgressMonitor());
@@ -52,6 +59,8 @@ public class AstAnalyzer {
 			toksWriter.close();
 			parentsWriter.close();
 		}
+		if (Config.mode.equals("train"))
+			saveDictionary();
 	}
 
 	private void extractParents(String ast) {
@@ -71,13 +80,13 @@ public class AstAnalyzer {
 	}
 
 	private static String readAll(String path) throws IOException {
-		String str=null;
-		if(Config.virtualClassName==null)
+		String str = null;
+		if (Config.virtualClassName == null)
 			str = Files.lines(Paths.get(path), Charset.forName("UTF-8"))
-				.collect(Collectors.joining(System.getProperty("line.separator"))) + "\n";
+					.collect(Collectors.joining(System.getProperty("line.separator"))) + "\n";
 		else
-			str = "class "+Config.virtualClassName+" {\n"+Files.lines(Paths.get(path), Charset.forName("UTF-8"))
-			.collect(Collectors.joining(System.getProperty("line.separator"))) + "\n}\n";
+			str = "class " + Config.virtualClassName + " {\n" + Files.lines(Paths.get(path), Charset.forName("UTF-8"))
+					.collect(Collectors.joining(System.getProperty("line.separator"))) + "\n}\n";
 		return str;
 	}
 
@@ -98,15 +107,34 @@ public class AstAnalyzer {
 
 		@Override
 		public boolean preVisit2(ASTNode node) {
-			if (node.getNodeType() == ASTNode.METHOD_DECLARATION || nest > 0) {
+			if (node.getNodeType() == ASTNode.BLOCK || nest > 0) {
 				astString.append("(");
-				//			if(!node.toString().contains("\n")) {
-				//				System.out.print(node.toString());
-				//
-				//			}
-				astString.append(node.getNodeType() + " ");
+				//System.out.println(node.toString());
+				//System.out.println(node.getNodeType());
+				if (node.getNodeType() == IDENTIFIER) {
+					String str = node.toString();
+					if (node.toString().length() <= 2) {//2字以下の変数はひとまとめにする
+						str = "x";
+					}
+					int id = dictionary.indexOf(str);
+					if (id != -1) {//登録済みの語彙を復元
+						astString.append(String.valueOf(86 + id) + " ");
+						//System.out.print(86+id);
+					} else {
+						if (Config.mode.equals("train")) {//訓練データ作成時は新たに語彙を登録
+							dictionary.add(str);
+							astString.append(String.valueOf(85 + dictionary.size()) + " ");
+						} else {//テストデータ作成時は新語彙は登録せずにそのまま
+							astString.append(IDENTIFIER + " ");
+						}
+						//System.out.println(String.valueOf(85+dictionary.size()));
+					}
+				} else {
+					astString.append(node.getNodeType() + " ");
+				}
 				toks.append(node.getNodeType() + " ");
-				if (node.getNodeType() == ASTNode.METHOD_DECLARATION) nest++;
+				if (node.getNodeType() == ASTNode.BLOCK)
+					nest++;
 			}
 			return true;
 		}
@@ -116,11 +144,28 @@ public class AstAnalyzer {
 			if (nest > 0) {
 				astString.append(") ");
 			}
-			if (node.getNodeType() == ASTNode.METHOD_DECLARATION) {
+			if (node.getNodeType() == ASTNode.BLOCK) {
 				nest--;
-				if(nest==0)
-				astString.append("\n");
+				if (nest == 0)
+					astString.append("\n");
 			}
 		}
+	}
+
+	private void saveDictionary() throws IOException {
+		PrintWriter dicWriter = new PrintWriter(new BufferedWriter(new FileWriter(AstStringGenerator.target + "dictionary.txt", false)));
+		for (String word : dictionary) {
+			dicWriter.println(word);
+		}
+		dicWriter.close();
+	}
+
+	private void loadDictionary() throws IOException {
+		BufferedReader dicReader = new BufferedReader(new FileReader(AstStringGenerator.target + "dictionary.txt"));
+		String word;
+		while ((word = dicReader.readLine()) != null) {
+			dictionary.add(word);
+		}
+		dicReader.close();
 	}
 }

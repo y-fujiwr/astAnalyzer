@@ -13,4 +13,5 @@ public class Config {
 	public static int lang = JAVA;
 	public static String charset = "UTF-8";
 	public static String virtualClassName = null;
+	public static String mode = "test";
 }

@@ -14,7 +14,7 @@ import analyze.AstAnalyzer;
 import analyze.CAnalyzer;
 
 public class AstStringGenerator {
-	static String target;
+	public static String target;
 
 	public static void main(String[] args) throws IOException {
 		commandOption(args);
@@ -46,13 +46,17 @@ public class AstStringGenerator {
 
 	private static void commandOption(String[] args) {
 		Options options = new Options();
-		options.addOption(Option.builder("d").longOpt("dir").desc("select directory for clone detection").hasArg()
+		options.addOption(Option.builder("d").longOpt("dir").desc("select directory for ASTstring generation").hasArg()
 				.argName("dirname").build());
 		options.addOption(Option.builder("l").longOpt("lang")
 				.desc("select language from following ( default: java )\r\n  * java\r\n  * c").hasArg().argName("lang")
 				.build());
 		options.addOption(Option.builder("v").longOpt("virtualclass").desc("select virtual class name").hasArg()
 				.argName("virtualclassname").build());
+		options.addOption(Option.builder("m").longOpt("mode").desc(
+				"select mode from following( default: test ) \r\n  * train(training data generator)\r\n  * test(test data generator)")
+				.hasArg()
+				.argName("mode").build());
 		CommandLine cl = null;
 		try {
 			CommandLineParser parser = new DefaultParser();
@@ -77,5 +81,8 @@ public class AstStringGenerator {
 
 		if (cl.hasOption("virtualclass"))
 			Config.virtualClassName = cl.getOptionValue("virtualclass");
+		
+		if (cl.hasOption("mode"))
+			Config.mode = cl.getOptionValue("mode");
 	}
 }
