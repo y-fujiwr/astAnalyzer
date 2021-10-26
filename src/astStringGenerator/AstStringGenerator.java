@@ -1,5 +1,6 @@
 package astStringGenerator;
 
+import java.io.File;
 import java.io.IOException;
 
 import org.apache.commons.cli.CommandLine;
@@ -13,6 +14,7 @@ import analyze.AstAnalyzer;
 
 public class AstStringGenerator {
 	static String target;
+	public static boolean doRemoveExceptionSyntax = false;
 	public static void main(String[] args) throws IOException {
 		commandOption(args);
 //		try {
@@ -22,14 +24,19 @@ public class AstStringGenerator {
 //			// TODO 自動生成された catch ブロック
 //			e.printStackTrace();
 //		}
+		File file = new File(target);
 		AstAnalyzer astanalyzer = new AstAnalyzer();
-		astanalyzer.analyze(target);
+		astanalyzer.searchFile(file);
 
 	}
+
+
+
 	private static void commandOption(String[] args) {
 		Options options = new Options();
 		options.addOption(Option.builder("d").longOpt("dir").desc("select directory for clone detection").hasArg()
 				.argName("dirname").build());
+		options.addOption("r",false,"remove the exception handling syntax.");
 		CommandLine cl = null;
 		try {
 			CommandLineParser parser = new DefaultParser();
@@ -40,9 +47,13 @@ public class AstStringGenerator {
 		}
 		if (cl.hasOption("dir"))
 			target = cl.getOptionValue("dir");
+		if (cl.hasOption("r")) {
+			doRemoveExceptionSyntax = true;
+		}
 		if (target == null) {
 			System.err.println("Usage Error: please select target directory.");
 			System.exit(1);
+
 		}
 	}
 
