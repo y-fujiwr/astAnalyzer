@@ -62,9 +62,9 @@ public class CPP14BaseListener implements CPP14Listener {
 	 * <p>The default implementation does nothing.</p>
 	 */
 	@Override public void visitTerminal(TerminalNode node) {
-		if(doWrite) {
-			astString.append("\"" + node.toStringTree() + "\" ");
-		}
+//		if(doWrite) {
+//			astString.append("\"" + node.toStringTree() + "\" ");
+//		}
 	}
 	/**
 	 * {@inheritDoc}
